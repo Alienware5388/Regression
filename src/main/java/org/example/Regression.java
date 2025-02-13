@@ -3,6 +3,7 @@ package org.example;
 
 import org.jfree.chart.*;
 import org.jfree.chart.plot.*;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.*;
 import javax.swing.*;
 import java.awt.*;
@@ -24,8 +25,8 @@ public class Regression {
         frame.setSize(900, 700);
         frame.setLayout(new BorderLayout());
 
-        // Apply dark theme to UI
-        UIManager.put("Panel.background", Color.BLACK);
+        // Apply dark theme to UI with better contrast
+        UIManager.put("Panel.background", Color.DARK_GRAY);
         UIManager.put("Label.foreground", Color.WHITE);
 
         // Main panel split into two regions: Input Panel (Left) and Graph Panel (Right)
@@ -34,16 +35,16 @@ public class Regression {
 
         // Left Panel: Input Panel
         JPanel inputPanel = new JPanel();
-        inputPanel.setBackground(Color.DARK_GRAY); // Changed background to dark gray
+        inputPanel.setBackground(new Color(50, 50, 50)); // Adjusted background for better visibility
         inputPanel.setLayout(new BorderLayout());
 
         JTextArea dataInputArea = new JTextArea(15, 30);
         JScrollPane scrollPane = new JScrollPane(dataInputArea);
         JButton addDatasetButton = new JButton("Add Dataset");
 
-        // Button action to parse and add dataset
         addDatasetButton.addActionListener(e -> {
             try {
+                dataset.removeAllSeries(); // Clear previous datasets
                 XYSeries newSeries = new XYSeries("User Data");
                 String[] lines = dataInputArea.getText().split("\n");
                 for (String line : lines) {
@@ -56,13 +57,9 @@ public class Regression {
                         throw new NumberFormatException("Incorrect format");
                     }
                 }
-
                 dataset.addSeries(newSeries);
-
-
-
-
-                dataInputArea.setText(""); // Clear input area after adding dataset
+                chart.fireChartChanged(); // Refresh chart
+                dataInputArea.setText("");
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(frame, "Invalid input format. Please enter data as 'strain stress' on each line.", "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -72,19 +69,28 @@ public class Regression {
         inputPanel.add(scrollPane, BorderLayout.CENTER);
         inputPanel.add(addDatasetButton, BorderLayout.SOUTH);
 
-        // Right Panel: Chart Panel
-        dataset = new XYSeriesCollection(); // Initialize dataset
-        chart = ChartFactory.createXYLineChart(
-                "Regressed curve", "Strain (%)", "Stress (MPa)", dataset,
-                PlotOrientation.VERTICAL, true, true, false);
-        chart.setBackgroundPaint(Color.BLACK);
-        chart.getPlot().setBackgroundPaint(Color.DARK_GRAY);
-        ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new Dimension(700, 500));
-        chartPanel.setMinimumSize(new Dimension(700, 500)); // Prevents shrinking
-
+        // Right Panel: Graph Panel
+        JPanel graphPanel = new JPanel();
+        graphPanel.setBackground(Color.BLACK);
         mainPanel.add(inputPanel);
-        mainPanel.add(chartPanel);
+        mainPanel.add(graphPanel);
+
+        // Create Chart
+        dataset = new XYSeriesCollection();
+        chart = ChartFactory.createXYLineChart("Stress-Strain Curve", "Strain (%)", "Stress (MPa)", dataset, PlotOrientation.VERTICAL, true, true, false);
+        XYPlot plot = (XYPlot) chart.getPlot();
+        plot.setBackgroundPaint(Color.DARK_GRAY);
+        plot.setDomainGridlinePaint(Color.LIGHT_GRAY);
+        plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
+
+        // Make regression curve thicker
+        XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
+        renderer.setSeriesStroke(0, new BasicStroke(3.0f)); // Thicker regression line
+        plot.setRenderer(renderer);
+
+        ChartPanel chartPanel = new ChartPanel(chart);
+        graphPanel.setLayout(new BorderLayout());
+        graphPanel.add(chartPanel, BorderLayout.CENTER);
 
         // Control Panel for regression options (Top Section)
         JPanel controlPanel = new JPanel();
@@ -111,10 +117,11 @@ public class Regression {
         plotRegressedButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (regressedSeries != null) {
+                if (regressedSeries != null && regressedSeries.getItemCount() > 0) {
                     dataset.addSeries(regressedSeries);
+                    chart.fireChartChanged(); // Ensure the chart updates
                 } else {
-                    JOptionPane.showMessageDialog(frame, "No regressed data available. Perform regression first.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(frame, "No regressed data available or regression failed. Ensure dataset is valid and try again.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -133,9 +140,15 @@ public class Regression {
     private static XYSeries performRegression(String type, String order) {
         // Placeholder for regression logic
         System.out.println("Performing " + type + " regression of " + order);
-        return new XYSeries("Regressed Curve"); // Return empty series for now
+        XYSeries series = new XYSeries("Regressed Curve");
+        // Perform actual regression logic here
+        return series;
     }
 }
+
+
+
+
 
 
 
